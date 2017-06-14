@@ -1,9 +1,95 @@
+<style>
+  body{
+    margin:0;
+    overflow: hidden;
+  }
+  canvas{
+    background: red;
+  }
+</style>
+
 <h1>Home#index</h1>
 <p>Find me in app/views/home/index.html.erb</p>
+<canvas id="myCanvas"></canvas>
 
-<!-- Div for the threeJS scene -->
-<div id="threejs_scene"></div>
+<script type="text/javascript">
+  var renderer = new THREE.WebGLRenderer({canvas: document.getElementById('myCanvas'), antialias: true});
+  //renderer.setClearColor(0x00ff00);
+  renderer.setClearColor(0x000000);
+  renderer.setPixelRatio(window.devicePixelRatio);
+  renderer.setSize(window.innerWidth, window.innerHeight);
 
-<!--<script src="three_scripts/vertexshader.js" type="x-shader/x-vertex" id="vertexshader"></script>
-<script src="three_scripts/fragmentshader.js" type="x-shader/x-fragment" id="fragmentshader"></script>-->
-<%#= javascript_include_tag "custom_three.js" %> 
+
+  var camera = new THREE.PerspectiveCamera(35, window.innerWidth / window.innerHeight, 0.1, 3000);
+
+  var scene = new THREE.Scene();
+
+
+  var light = new THREE.AmbientLight(0xffffff, 0.5);
+  scene.add(light);
+
+  var light1 = new THREE.PointLight(0xffffff, 0.5);
+  scene.add(light1);
+
+  // adding cube
+  var geometry = new THREE.CubeGeometry(100, 100, 100);
+
+  // basic geometry for inserting vertices
+  /*
+  var geometry = new THREE.Geometry();
+  geometry.vertices.push(
+    new THREE.Vector3(-10,10,0),
+    new THREE.Vector3(-10,-10,0),
+    new THREE.Vector3(10,-10,0),
+  );
+  geometry.faces.push(new THREE.Face3(0,1,2));
+  */
+
+  // Buffer geometry
+  /*
+  var geometry = new THREE.BufferGeometry();
+  var vertices = new Float32Array([
+    -10.0, -10.0, 0.0,
+    10.0, -10.0, 0.0,
+    10.0, 10.0, 0.0
+  ]);
+  geometry.addAttribute('position', new THREE.BufferAttribute(vertices, 3));
+  */
+  //var geometry = new THREE.SphereGeometry(50,50,50);
+  // passing vertices, faces to make polyhedron
+
+  /*
+  var vertices = [
+    -1,-1,-1,  1,-1,-1,  1,1,-1,  -1,1,-1
+    -1,-1,1,  1,-1,1,  1,1,1,  -1,1,1,
+  ]
+
+  var faces = [
+    2,1,0,  0,3,2,
+    0,4,7, 7,3,0,
+    0,1,5, 5,4,0,
+    1,2,6, 6,5,1,
+    2,3,7, 7,6,2,
+    4,5,6, 6,7,4
+  ]
+
+  var geometry = new THREE.PolyhedronGeometry(vertices,faces,6,2);
+  */
+
+  //var material = new THREE.MeshBasicMaterial();
+  var material = new THREE.MeshLambertMaterial({color: 0xF3FFE2});
+  var mesh = new THREE.Mesh(geometry, material);
+  mesh.position.set(0,0,-1000);
+
+  scene.add(mesh);
+
+  requestAnimationFrame(render);
+
+  function render(){
+    mesh.rotation.x +=0.01;
+    mesh.rotation.y +=0.01;
+    renderer.render(scene, camera);
+    requestAnimationFrame(render);
+  }
+  //document.body.appendchild(renderer.domElement);
+</script>

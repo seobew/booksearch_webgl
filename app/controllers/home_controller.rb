@@ -8,4 +8,6 @@ class HomeController < ApplicationController
   def show
   	@book = params[:book]
   end
+  def obj
+  end
 end

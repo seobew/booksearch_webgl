@@ -4,109 +4,372 @@
 <script src="http://threejs.org/examples/js/loaders/FBXLoader2.js"></script>
 <script src="http://threejs.org/examples/js/loaders/MTLLoader.js"></script>
 <script src="http://threejs.org/examples/js/loaders/DDSLoader.js"></script>
+<script src="http://threejs.org/examples/js/controls/FirstPersonControls.js"></script>
 <script src="http://threejs.org/examples/js/controls/TrackballControls.js"></script>
 
-<!-- <script>
-var scene = new THREE.Scene();
+<div id="box"></div>
+	<script>
+			// roate
+			THREE.PerspectiveCamera.prototype.setRotateX = function( deg ){
+	            if ( typeof( deg ) == 'number' && parseInt( deg ) == deg ){
+	                this.rotation.x = deg * ( Math.PI / 180 );
+	            }
+	        };
+	        THREE.PerspectiveCamera.prototype.setRotateY = function( deg ){
+	            if ( typeof( deg ) == 'number' && parseInt( deg ) == deg ){
+	                this.rotation.y = deg * ( Math.PI / 180 );
+	            }
+	        };
+	        THREE.PerspectiveCamera.prototype.setRotateZ = function( deg ){
+	            if ( typeof( deg ) == 'number' && parseInt( deg ) == deg ){
+	                this.rotation.z = deg * ( Math.PI / 180 );
+	            }
+	        };
+	        THREE.PerspectiveCamera.prototype.getRotateX = function(){
+	            return Math.round( this.rotation.x * ( 180 / Math.PI ) );
+	        };
+	        THREE.PerspectiveCamera.prototype.getRotateY = function(){
+	            return Math.round( this.rotation.y * ( 180 / Math.PI ) );
+	        };
+	        THREE.PerspectiveCamera.prototype.getRotateZ = function(){
+	            return Math.round( this.rotation.z * ( 180 / Math.PI ) );
+	        };
+	        function toBox( x, y, z )
+	        {
+	            document.getElementById('box').innerHTML = 'X: ' + x + '<br />Y: ' + y + '<br />Z: ' + z;
+	        }
 
-var camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 2000 );
-camera.position.z = 250;
-camera.lookAt( scene.position );
 
-var directionalLight = new THREE.DirectionalLight( 0xffeedd );
-directionalLight.position.set( 0, 0, 1 ).normalize();
-scene.add( directionalLight );
-
-// model
-var mesh = null;
-
-var path = '/';
-var filename = 'test.mtl';
-var mtlLoader = new THREE.MTLLoader();
-mtlLoader.setBaseUrl(path);
-mtlLoader.setPath(path);
-mtlLoader.load(filename, function(materials) {
-  materials.preload();
-  var objLoader = new THREE.OBJLoader();
-  objLoader.setMaterials(materials);
-  objLoader.setPath(path);
-  objLoader.load(filename.replace('.mtl', '.obj'), function(object) {
-
-  }, null, null);
-});
-
-</script> -->
-
-<script>
 			var container, stats;
 			var camera, scene, renderer, constrols;
 			var mouseX = 0, mouseY = 0;
 			var windowHalfX = window.innerWidth / 2;
 			var windowHalfY = window.innerHeight / 2;
+			var VIEW_INCREMENT = 0.1;
+			var clock = new THREE.Clock();
+			var player = { posX:-10, posY:100, posZ:0, speed:10, turnSpeed:Math.PI*0.005 };
+			var keyboard = {};
+
+			var book;
+
+			// model
+			var onProgress = function ( xhr ) {
+				if ( xhr.lengthComputable ) {
+					var percentComplete = xhr.loaded / xhr.total * 100;
+					console.log( Math.round(percentComplete, 2) + '% downloaded' );
+				}
+			};
+			var onError = function ( xhr ) { };
+			THREE.Loader.Handlers.add( /\.dds$/i, new THREE.DDSLoader() );
+			var mtlLoader = new THREE.MTLLoader();
+			var objects = [];
+
+
 			init();
+			toBox( camera.position.x, camera.position.y, camera.position.z );
 			animate();
+			// render();
 			function init() {
 				container = document.createElement( 'div' );
 				document.body.appendChild( container );
-				camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 1000 );
-				camera.position.z = 55;
-
-				// trackball
-				controls = new THREE.TrackballControls( camera );
-
-				controls.rotateSpeed = 1.0;
-				controls.zoomSpeed = 1.2;
-				controls.panSpeed = 0.8;
-
-				controls.noZoom = false;
-				controls.noPan = false;
-
-				controls.staticMoving = true;
-				controls.dynamicDampingFactor = 0.3;
-
-				controls.keys = [ 65, 83, 68 ];
-
-				controls.addEventListener( 'change', render );
+				camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 3000 );
+				camera.position.set(0, player.posY, 0);
+ 				camera.lookAt(new THREE.Vector3(0, player.posY, -1));
 
 				// scene
 				scene = new THREE.Scene();
+
+				// light
 				var ambient = new THREE.AmbientLight( 0x444444 );
 				scene.add( ambient );
 				var directionalLight = new THREE.DirectionalLight( 0xffeedd );
 				directionalLight.position.set( 0, 0, 1 ).normalize();
 				scene.add( directionalLight );
-				// model
-				var onProgress = function ( xhr ) {
-					if ( xhr.lengthComputable ) {
-						var percentComplete = xhr.loaded / xhr.total * 100;
-						console.log( Math.round(percentComplete, 2) + '% downloaded' );
-					}
-				};
-				var onError = function ( xhr ) { };
-				THREE.Loader.Handlers.add( /\.dds$/i, new THREE.DDSLoader() );
-				var mtlLoader = new THREE.MTLLoader();
-				mtlLoader.setPath( '/' );
-				mtlLoader.load( 'test.mtl', function( materials ) {
-					console.log('mtl loader');
-					console.log(materials);
+
+
+				// // model
+				// var onProgress = function ( xhr ) {
+				// 	if ( xhr.lengthComputable ) {
+				// 		var percentComplete = xhr.loaded / xhr.total * 100;
+				// 		console.log( Math.round(percentComplete, 2) + '% downloaded' );
+				// 	}
+				// };
+				// var onError = function ( xhr ) { };
+				// THREE.Loader.Handlers.add( /\.dds$/i, new THREE.DDSLoader() );
+				// var mtlLoader = new THREE.MTLLoader();
+				// var objects = [];
+
+				// mtlLoader.setPath( '/' );
+				// mtlLoader.load( 'library.mtl', function( materials ) {
+				// 	materials.preload();
+				// 	var objLoader = new THREE.OBJLoader();
+				// 	objLoader.setMaterials( materials );
+				// 	objLoader.setPath( '/' );
+				// 	objLoader.load( 'library.obj', function ( object ) {
+				// 		newCell = object.clone();
+				// 		scene.add(newCell);
+				// 	}, onProgress, onError );
+				// });
+
+				// section A
+				// load_shelf(1000,720,2);
+				// load_shelf(1150,720,2);
+				// load_shelf(1300,720,2);
+
+				// load_shelf(1450,720,2);
+				// load_shelf(1600,720,2);
+				// load_shelf(1750,720,2);
+
+				// load_shelf(1900,720,2);
+				// load_shelf(2050,720,2);
+				// load_shelf(2200,720,2);
+
+				// load_shelf(2350,720,1);
+				// load_shelf(2500,720,2);
+				// load_shelf(2650,720,2);
+
+				// load_shelf(2800,720,2);
+				// load_shelf(2950,720,2);
+
+				// section D
+				load_shelf(-1000,-360,3);
+				load_shelf(-1150,-360,3);
+				load_shelf(-1300,-360,3);
+				load_shelf(-1450,-360,3);
+				load_shelf(-1600,-360,2);
+				load_shelf(-1750,-360,3);
+				load_shelf(-1900,-360,3);
+				load_shelf(-2050,-360,3);
+				load_shelf(-2200,-360,3);
+				load_shelf(-2350,-360,3);
+
+				// section E
+				load_shelf(-1000,-1370,3);
+				load_shelf(-1150,-1370,3);
+				load_shelf(-1300,-1370,3);
+				load_shelf(-1450,-1370,3);
+				load_shelf(-1600,-1370,3);
+				load_shelf(-1750,-1370,3);
+				load_shelf(-1900,-1370,2);
+				load_shelf2(-1900,-1370,2);
+				load_shelf(-2050,-1370,2);
+				load_shelf(-2200,-1370,1);
+				load_shelf2(-2200,-1370,1);
+				load_shelf(-2350,-1370,1);
+				load_shelf2(-2350,-1370,1);
+
+				// mtlLoader.load( 'book3.mtl', function( materials ) {
+				// 	materials.preload();
+				// 	var objLoader = new THREE.OBJLoader();
+				// 	objLoader.setMaterials( materials );
+				// 	objLoader.setPath( '/' );
+				// 	objLoader.load( 'book3.obj', function ( object ) {
+				// 		for (var i = 1; i<4; i++){
+				// 			newCell = object.clone();
+				// 			// object.position.z -= 500;
+				// 			// object.position.x += 250*i;
+				// 			// scene.add( object );
+				// 			// newCell.scale.set(13, 13, 13); // normalize to roughly 1x1 packing
+				//             // newCell.position.set(newCell.position.x + 150*i, newCell.position.y, newCell.position.z +200);
+				//             // newCell.position.set(newCell.position.x, newCell.position.y, newCell.position.z +200 + 270*i);
+				//             newCell.position.set(200, newCell.position.y, 270*i);
+				//             scene.add(newCell);
+				//             objects.push(newCell);
+				// 		}
+				// 	}, onProgress, onError );
+				// });
+
+				/*
+				mtlLoader.load( 'book2.mtl', function( materials ) {
 					materials.preload();
 					var objLoader = new THREE.OBJLoader();
 					objLoader.setMaterials( materials );
 					objLoader.setPath( '/' );
-					objLoader.load( 'test.obj', function ( object ) {
-						object.position.y = - 5;
-						scene.add( object );
+					objLoader.load( 'book2.obj', function ( object ) {
+						for (var i = 0; i<3; i++){
+							newCell = object.clone();
+							// object.position.z -= 500;
+							// object.position.x += 250*i;
+							// scene.add( object );
+							// newCell.scale.set(13, 13, 13); // normalize to roughly 1x1 packing
+							// newCell.rotation.y +=10;
+				            // newCell.position.set(newCell.position.x + 150*i, newCell.position.y, newCell.position.z -200);
+				            newCell.position.set(newCell.position.x, newCell.position.y, newCell.position.z -200 - 180*i);
+				            scene.add(newCell);
+				            objects.push(newCell);
+						}
 					}, onProgress, onError );
 				});
-				//
+				*/
+
+				// hyungjun
+				mtlLoader.load( '/book3.mtl', function( materials ) {
+				materials.preload();
+				var objLoader = new THREE.OBJLoader();
+				objLoader.setMaterials( materials );
+				objLoader.load( '/book3.obj', function ( object ) {
+				  for(var i = 0; i<14; i++){ // A sector
+			      newCell0 = object.clone();
+			      newCell0.position.x += 1800 + (i*150);
+			      newCell0.position.z += 720;
+			      scene.add(newCell0);
+			      if (i==9) continue;
+			      newCell1 = newCell0.clone();
+			      newCell1.position.z -= 270;
+			      scene.add(newCell1);
+			    }
+			    for(var i = 0; i<19; i++){ // B sector (1)
+			      if(i!=9){
+			        newCell0 = object.clone();
+			        newCell0.position.x += 1000 + (i*150);
+			        newCell0.position.z -= 180;
+			        scene.add(newCell0);
+			        if(i == 16 || i == 17 || i == 18) continue;
+			        newCell1 = object.clone();
+			        newCell1.position.x += 1000 + (i*150);
+			        newCell1.position.z -= 450;
+			        scene.add(newCell1);
+			      }
+			      if(i!=14 && i!=15){
+			        newCell2 = object.clone();
+			        newCell2.position.x += 1000 + (i*150);
+			        newCell2.position.z -= 720;
+			        scene.add(newCell2);
+			      }
+			    }
+			    for(var i = 0; i<12; i++){ // C sector
+			      if(i!=4){
+			        newCell0 = object.clone();
+			        newCell0.position.x += 1000 + (i*150);
+			        newCell0.position.z -= 1190;
+			        scene.add(newCell0);
+			      }
+			      if(i<10){
+			        newCell1 = object.clone();
+			        newCell1.position.x += 1000 + (i*150);
+			        newCell1.position.z -= 1460;
+			        scene.add(newCell1);
+			      }
+			      if(i<8){
+			        newCell2 = object.clone();
+			        newCell2.position.x += 1000 + (i*150);
+			        newCell2.position.z -= 1730;
+			        scene.add(newCell2);
+			      }
+			    }
+				}, onProgress, onError );
+			});
+
+			mtlLoader.load( '/book2.mtl', function( materials ) { // B sector (2)
+				materials.preload();
+				var objLoader = new THREE.OBJLoader();
+				objLoader.setMaterials( materials );
+			  objLoader.load( '/book2.obj', function ( object ) {
+			    newCell = object.clone();
+			    newCell.position.x += 150;
+			    newCell.position.x += 1000 + (16*150);
+			    newCell.position.z -= 450;
+			    scene.add(newCell);
+			  }, onProgress, onError );
+			});
+
+			mtlLoader.load( '/book1.mtl', function( materials ) { // B sector (3)
+				materials.preload();
+				var objLoader = new THREE.OBJLoader();
+				objLoader.setMaterials( materials );
+			  objLoader.load( '/book1.obj', function ( object ) {
+			    newCell = object.clone();
+			    newCell.position.x += 300;
+			    newCell.position.x += 1000 + (17*150);
+			    newCell.position.z -= 450;
+			    scene.add(newCell);
+			  }, onProgress, onError );
+			});
+				// hyungjun end
+
+				// new book;
+
+				// renderer
 				renderer = new THREE.WebGLRenderer();
 				renderer.setPixelRatio( window.devicePixelRatio );
 				renderer.setSize( window.innerWidth, window.innerHeight );
+				renderer.setClearColor('white');
 				container.appendChild( renderer.domElement );
 				// document.addEventListener( 'mousemove', onDocumentMouseMove, false );
 				//
 				window.addEventListener( 'resize', onWindowResize, false );
+				// renderer.render( scene, camera );
 			}
+
+			function load_shelf(x, z, status){
+				mtlLoader.load( '/book3.mtl', function( materials ) {
+					materials.preload();
+					var objLoader = new THREE.OBJLoader();
+					objLoader.setMaterials( materials );
+					objLoader.setPath( '/' );
+					objLoader.load( 'book3.obj', function ( object ) {
+						for (var i = 0; i<3; i++){
+							if(status<=i){
+								continue;
+							}
+							newCell = object.clone();
+							newCell.position.set(x, newCell.position.y, z-270*i);
+				            scene.add(newCell);
+				            objects.push(newCell);
+						}
+					}, onProgress, onError );
+				});
+			}
+
+			function load_shelf2(x, z, status){
+				mtlLoader.load( '/book2.mtl', function( materials ) {
+					materials.preload();
+					var objLoader = new THREE.OBJLoader();
+					objLoader.setMaterials( materials );
+					objLoader.setPath( '/' );
+					objLoader.load( 'book2.obj', function ( object ) {
+						newCell = object.clone();
+						if (status==2){
+							newCell.position.set(x+150, newCell.position.y, z-540);
+						}else{
+							newCell.position.set(x+150, newCell.position.y, z-270);
+						}
+
+
+			            scene.add(newCell);
+			            objects.push(newCell);
+					}, onProgress, onError );
+				});
+			}
+
+
+			function check(e) {
+				var delta = 10;
+				event = event || window.event;
+			    var code = e.keyCode;
+			    switch (code) {
+			        case 37:
+			        	camera.rotation.y += player.turnSpeed;
+			        	break; //Left key
+			        case 38:
+						camera.position.x -= Math.sin(camera.rotation.y) * player.speed;
+					    camera.position.z -= Math.cos(camera.rotation.y) * player.speed;
+			        	break; //Up key
+			        case 39:
+			        	camera.rotation.y -= player.turnSpeed;
+			        	break; //Right key
+			        case 40:
+			       		camera.position.x += Math.sin(camera.rotation.y) * player.speed;
+					    camera.position.z += Math.cos(camera.rotation.y) * player.speed;
+			        	break; //Down key
+			        default: console.log(code); //Everything else
+			    }
+	       		toBox( camera.position.x, camera.position.y, camera.position.z );
+			}
+
+			window.addEventListener('keydown',this.check,false);
+
+
 			function onWindowResize() {
 				windowHalfX = window.innerWidth / 2;
 				windowHalfY = window.innerHeight / 2;
@@ -121,13 +384,16 @@ mtlLoader.load(filename, function(materials) {
 			//
 			function animate() {
 				requestAnimationFrame( animate );
-				// render();
-				controls.update();
+
+
+				render();
+				// controls.update();
 			}
+
 			function render() {
-				camera.position.x += ( mouseX - camera.position.x ) * .05;
-				camera.position.y += ( - mouseY - camera.position.y ) * .05;
-				camera.lookAt( scene.position );
+
+				// camera.lookAt( scene.position );
+				// camControls.update( clock.getDelta() );
 				renderer.render( scene, camera );
 			}
 		</script>

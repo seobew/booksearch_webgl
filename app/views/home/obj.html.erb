@@ -9,6 +9,7 @@
 
 <div id="box"></div>
 	<script>
+
 			// roate
 			THREE.PerspectiveCamera.prototype.setRotateX = function( deg ){
 	            if ( typeof( deg ) == 'number' && parseInt( deg ) == deg ){
@@ -132,31 +133,32 @@
 				// load_shelf(2950,720,2);
 
 				// section D
-				load_shelf(-1000,-360,3);
-				load_shelf(-1150,-360,3);
-				load_shelf(-1300,-360,3);
-				load_shelf(-1450,-360,3);
-				load_shelf(-1600,-360,2);
-				load_shelf(-1750,-360,3);
-				load_shelf(-1900,-360,3);
-				load_shelf(-2050,-360,3);
-				load_shelf(-2200,-360,3);
-				load_shelf(-2350,-360,3);
+				load_shelf(-1200,-360,3);
+				load_shelf(-1350,-360,3);
+				load_shelf(-1500,-360,3);
+				load_shelf(-1650,-360,3);
+				load_shelf(-1800,-360,2);
+				load_shelf(-1950,-360,3);
+				load_shelf(-2100,-360,3);
+				load_shelf(-2250,-360,3);
+				load_shelf(-2400,-360,3);
+				// load_shelf(-2350,-360,3);
 
 				// section E
-				load_shelf(-1000,-1370,3);
-				load_shelf(-1150,-1370,3);
-				load_shelf(-1300,-1370,3);
-				load_shelf(-1450,-1370,3);
-				load_shelf(-1600,-1370,3);
-				load_shelf(-1750,-1370,3);
-				load_shelf(-1900,-1370,2);
-				load_shelf2(-1900,-1370,2);
-				load_shelf(-2050,-1370,2);
-				load_shelf(-2200,-1370,1);
-				load_shelf2(-2200,-1370,1);
-				load_shelf(-2350,-1370,1);
-				load_shelf2(-2350,-1370,1);
+				load_shelf(-1200,-1370,3);
+				load_shelf(-1350,-1370,3);
+				load_shelf(-1500,-1370,3);
+				load_shelf(-1650,-1370,3);
+				load_shelf(-1800,-1370,3);
+				load_shelf(-1950,-1370,2);
+				load_shelf2(-1950,-1370,2);
+				load_shelf(-2100,-1370,2);
+				// load_shelf2(-2100,-1370,2);
+				// load_shelf(-2050,-1370,2);
+				// load_shelf(-2200,-1370,1);
+				// load_shelf2(-2200,-1370,1);
+				// load_shelf(-2350,-1370,1);
+				// load_shelf2(-2350,-1370,1);
 
 				// mtlLoader.load( 'book3.mtl', function( materials ) {
 				// 	materials.preload();
@@ -306,6 +308,7 @@
 					materials.preload();
 					var objLoader = new THREE.OBJLoader();
 					objLoader.setMaterials( materials );
+					// 만약 넘어온 데이터의 x,z값이 같다면, 투명하지 않게 하기
 					objLoader.setPath( '/' );
 					objLoader.load( 'book3.obj', function ( object ) {
 						for (var i = 0; i<3; i++){

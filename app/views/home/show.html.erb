@@ -1,226 +1,25 @@
 <div class="message" style="text-align:center;">
-	<h3><%=@book%>의 위치 결과입니다.</h3>
+	<h3><%=@searched_book_title%>의 검색 결과입니다.</h3>
 </div>
-
-
-<!-- three.js part -->
-<div id="info">
-</div>
-
-<div class="minimap" style="">
-	
-</div>
-
-<script src="http://threejs.org/examples/js/loaders/OBJLoader.js"></script>
-<script src="http://threejs.org/examples/js/loaders/FBXLoader2.js"></script>
-<script src="http://threejs.org/examples/js/loaders/MTLLoader.js"></script>
-<script src="http://threejs.org/examples/js/loaders/DDSLoader.js"></script>
-
-<script src="http://threejs.org/examples/js/Detector.js"></script>
-<script src="http://threejs.org/examples/js/controls/OrbitControls.js"></script>
-<script src="http://threejs.org/examples/js/libs/stats.min.js"></script>
-
-<script>
-
-	/*
-	var clock = new THREE.Clock();
-	var delta = clock.getDelta(); // seconds.
-	var rotateAngle = Math.PI / 2 * delta;   // pi/2 radians (90 degrees) per second
-	var container, stats;
-
-	var camera, scene, renderer;
-
-	var mouseX = 0, mouseY = 0;
-
-	var windowHalfX = window.innerWidth / 2;
-	var windowHalfY = window.innerHeight / 2;
-
-
-	init();
-	animate();
-
-
-	function init() {
-
-		container = document.createElement( 'div' );
-		document.body.appendChild( container );
-
-		camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 2000 );
-		camera.position.z = 600;
-
-		// scene
-
-		scene = new THREE.Scene();
-
-		var ambient = new THREE.AmbientLight( 0x101030 );
-		scene.add( ambient );
-
-		var directionalLight = new THREE.DirectionalLight( 0xffeedd );
-		directionalLight.position.set( 0, 0, 1 );
-		scene.add( directionalLight );
-
-		// texture
-
-		var manager = new THREE.LoadingManager();
-		manager.onProgress = function ( item, loaded, total ) {
-
-		console.log( item, loaded, total );
-
-		};
-
-		// model
-		var loader = new THREE.OBJLoader( manager );
-			loader.load( '/desk.obj', function ( object ) {
+<br>
+<br>
+<div class="books_wrapper" style="margin:0 auto;">
+	<table style="margin:0 auto;">
+	<tr>
+		<th>Title</th>
+		<th>Author</th>
+		<th>Index</th>
+	</tr>
+		<% @book_list.each do |book| %>
+			<!-- <div class="book_wrapper"> -->
 			
-			// var material = new THREE.MeshLambertMaterial({
-			// 	map: THREE.ImageUtils.loadTexture('/bookshelfTexture1.jpeg')
-			// });
-
-			// var mesh = new THREE.Mesh(object.geometry, material);
-			// scene.add(mesh);
+				<tr>
+					<td><a href="/home/obj/1"><%= book.title %></a></td>
+					<td><%= book.author %></td>
+					<td><%= book.index %></td>
+				</tr>
 			
-			object.traverse( function ( child ) {
-
-			if ( child instanceof THREE.Mesh ) {
-
-			//child.material.map = texture;
-
-			}
-
-			} );
-
-			// position
-			object.position.x = -100;
-			object.position.y = 0;
-			// object.position.z = 200;
-			object.rotation.x = 2.1;
-			object.rotation.y = 3;
-			object.rotation.z = 30;
-			//object.rotation.z = 100;
-			// object.rotation.z = 20* Math.PI / 180;
-			object.scale.x = 0.7;
-			object.scale.y = 0.7;
-			object.scale.z = 0.7;
-			obj = object
-			scene.add( obj );
-
-		} );
-
-		renderer = new THREE.WebGLRenderer({ alpha: true });
-		renderer.setSize( window.innerWidth, window.innerHeight );
-		// renderer.setClearColor( 0xffffff, 0);
-		// renderer.setClearColor(0xffffff, 0);
-		renderer.setClearColor( 0x000000, 0 );
-		container.appendChild( renderer.domElement );
-
-		//document.addEventListener( 'mousemove', onDocumentMouseMove, false );
-
-		window.addEventListener( 'resize', onWindowResize, false );
-
-		}
-
-		function onWindowResize() {
-			windowHalfX = window.innerWidth / 2;
-			windowHalfY = window.innerHeight / 2;
-
-			camera.aspect = window.innerWidth / window.innerHeight;
-			camera.updateProjectionMatrix();
-
-			renderer.setSize( window.innerWidth, window.innerHeight );
-		}
-
-		function onDocumentMouseMove( event ) {
-			mouseX = ( event.clientX - windowHalfX ) / 2;
-			mouseY = ( event.clientY - windowHalfY ) / 2;
-		}
-
-		function animate() {
-		requestAnimationFrame( animate );
-			render();
-		}
-
-		function render() {
-		// obj.rotation.x += (0.2*(Math.PI / 180));
-		//obj.rotation.x %=360;
-
-		camera.position.x += ( mouseX - camera.position.x ) * .05;
-		camera.position.y += ( - mouseY - camera.position.y ) * .05;
-
-		camera.lookAt( scene.position );
-		renderer.render( scene, camera );
-
-	}// init end
-	*/	
-
-	var container, stats;
-			var camera, scene, renderer;
-			var mouseX = 0, mouseY = 0;
-			var windowHalfX = window.innerWidth / 2;
-			var windowHalfY = window.innerHeight / 2;
-			init();
-			animate();
-			function init() {
-				container = document.createElement( 'div' );
-				document.body.appendChild( container );
-				camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 2000 );
-				camera.position.z = 200;
-				// scene
-				scene = new THREE.Scene();
-				var ambient = new THREE.AmbientLight( 0x444444 );
-				scene.add( ambient );
-				var directionalLight = new THREE.DirectionalLight( 0xffeedd );
-				directionalLight.position.set( 0, 0, 1 ).normalize();
-				scene.add( directionalLight );
-				// model
-				var onProgress = function ( xhr ) {
-					if ( xhr.lengthComputable ) {
-						var percentComplete = xhr.loaded / xhr.total * 100;
-						console.log( Math.round(percentComplete, 2) + '% downloaded' );
-					}
-				};
-				var onError = function ( xhr ) { };
-				THREE.Loader.Handlers.add( /\.dds$/i, new THREE.DDSLoader() );
-				var mtlLoader = new THREE.MTLLoader();
-				mtlLoader.setPath( '/' );
-				mtlLoader.load( 'test.mtl', function( materials ) {
-					materials.preload();
-					var objLoader = new THREE.OBJLoader();
-					objLoader.setMaterials( materials );
-					objLoader.setPath( '/' );
-					objLoader.load( 'test.obj', function ( object ) {
-						object.position.y = - 95;
-						scene.add( object );
-					}, onProgress, onError );
-				});
-				//
-				renderer = new THREE.WebGLRenderer();
-				renderer.setPixelRatio( window.devicePixelRatio );
-				renderer.setSize( window.innerWidth, window.innerHeight );
-				container.appendChild( renderer.domElement );
-				document.addEventListener( 'mousemove', onDocumentMouseMove, false );
-				//
-				window.addEventListener( 'resize', onWindowResize, false );
-			}
-			function onWindowResize() {
-				windowHalfX = window.innerWidth / 2;
-				windowHalfY = window.innerHeight / 2;
-				camera.aspect = window.innerWidth / window.innerHeight;
-				camera.updateProjectionMatrix();
-				renderer.setSize( window.innerWidth, window.innerHeight );
-			}
-			function onDocumentMouseMove( event ) {
-				mouseX = ( event.clientX - windowHalfX ) / 2;
-				mouseY = ( event.clientY - windowHalfY ) / 2;
-			}
-			//
-			function animate() {
-				requestAnimationFrame( animate );
-				render();
-			}
-			function render() {
-				camera.position.x += ( mouseX - camera.position.x ) * .05;
-				camera.position.y += ( - mouseY - camera.position.y ) * .05;
-				camera.lookAt( scene.position );
-				renderer.render( scene, camera );
-			}
-</script>
+			<!-- </div> -->
+		<% end %>
+	</table>
+</div>

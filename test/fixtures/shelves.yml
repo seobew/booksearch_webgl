@@ -1,0 +1,15 @@
+# Read about fixtures at http://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  shelf_ew: MyString
+  self_no: 1
+  x: 1
+  z: 1
+  kind: 1
+
+two:
+  shelf_ew: MyString
+  self_no: 1
+  x: 1
+  z: 1
+  kind: 1

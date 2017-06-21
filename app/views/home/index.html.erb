@@ -1,132 +1,485 @@
-<h1>Home#index</h1>
-<p>Find me in app/views/home/index.html.erb</p>
-
-<!-- Div for the threeJS scene -->
-<div id="threejs_scene"></div>
-
-<%#= javascript_include_tag "vertexshader.js" %>
-<%#= javascript_include_tag "fragmentshader.js" %>
-
-<script type="text/javascript">
-// function init() {
-//     var scene = new THREE.Scene();
-//     var camera = new THREE.PerspectiveCamera(80, window.innerWidth/window.innerHeight, 0.1, 1000);
-//     var renderer = new THREE.WebGLRenderer();
-//     renderer.setClearColor(0xEEEEEE);
-//     renderer.setSize(window.innerWidth, window.innerHeight);
-//     //Show Axis
-//     var axes = new THREE.AxisHelper(10);
-//     scene.add(axes);
-
-//     //Let's make a cube  
-// 		var cubeGeometry = new THREE.BoxGeometry(6,6,6);  
-// 		var cubeMeterial = new THREE.MeshBasicMaterial({color: 0x0089A0});  
-// 		var cube = new THREE.Mesh(cubeGeometry, cubeMeterial);  
-// 		cube.position.x = 0;  
-// 		cube.position.y = 10;  
-// 		cube.position.z = 10;  
-// 		scene.add(cube);
-// 		//Let's make a sphere
-// 		var sphereGeometry = new THREE.SphereGeometry(4,32,32);
-// 		var sphereMeterial = new THREE.MeshBasicMaterial({color: 0xFE98A0});
-// 		var sphere = new THREE.Mesh(sphereGeometry, sphereMeterial);
-// 		sphere.position.x = -15;
-// 		sphere.position.y = 2;
-// 		sphere.position.z = 0;
-// 		scene.add(sphere);
-
-// 		var vShader = $('vertexshader');
-// 		var fShader = $('fragmentshader');
-
-// 		var shaderMaterial =
-// 	  new THREE.ShaderMaterial({
-// 	    vertexShader:   vShader.text(),
-// 	    fragmentShader: fShader.text()
-// 	  });
-
-//     //Let's make a plane
-//     var planeGeometry = new THREE.PlaneGeometry(60,30,1,1);
-//     var planeMaterial = new THREE.MeshBasicMaterial({color: 0xCCCCCC});
-//     var plane = new THREE.Mesh(planeGeometry, planeMaterial);
-//     plane.rotation.x = -0.5 * Math.PI;
-//     scene.add(plane);
-//     camera.position.x = 0;
-//     camera.position.y = 30;
-//     camera.position.z = 30;
-//     camera.lookAt(scene.position);
-//     // 여기서 페이지에 올려줌.
-//     document.getElementById("threejs_scene").appendChild(renderer.domElement);
-//     renderScene();
-//     function renderScene() {
-//         renderer.render(scene,camera);
-//     }
-// }
-// window.onload = init();
-</script>
-
-<!--<script src="three_scripts/vertexshader.js" type="x-shader/x-vertex" id="vertexshader"></script>
-<script src="three_scripts/fragmentshader.js" type="x-shader/x-fragment" id="fragmentshader"></script>
-<script type="text/javascript" src="three_scripts/custom_threee.js"></script>-->
-
-<script id="vertexShader" type="x-shader/x-vertex">
-	uniform float time;
-	uniform vec2 resolution;
-	void main()	{
-		gl_Position = vec4( position, 1.0 );
-	}
-</script>
-
-<script id="fragmentShader" type="x-shader/x-fragment">
-	uniform float time;
-	uniform vec2 resolution;
-	void main()	{
-		float x = mod(time + gl_FragCoord.x, 20.) < 10. ? 1. : 0.;
-		float y = mod(time + gl_FragCoord.y, 20.) < 10. ? 1. : 0.;
-		gl_FragColor = vec4(vec3(min(x, y)), 1.);
-	}
-</script>
+<script src="https://threejs.org/examples/js/loaders/OBJLoader.js"></script>
+<script src="https://threejs.org/examples/js/loaders/FBXLoader2.js"></script>
+<script src="https://threejs.org/examples/js/loaders/MTLLoader.js"></script>
+<script src="https://threejs.org/examples/js/loaders/DDSLoader.js"></script>
+<script src="https://threejs.org/examples/js/controls/FirstPersonControls.js"></script>
+<script src="https://threejs.org/examples/js/controls/TrackballControls.js"></script>
+<style>
+    *{
+        margin:0;
+    }
+    .loading{
+        /*display: none;*/
+    }
+    .loader {
+        border: 16px solid #f3f3f3; /* Light grey */
+        border-top: 16px solid #3498db; /* Blue */
+        border-radius: 50%;
+        width: 120px;
+        height: 120px;
+        animation: spin 2s linear infinite;
+        position:absolute;
+        left:45.5%;
+        top:40%;
+    }
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+</style>
+<div class="loading" style="background: black; opacity: 0.5; width:100%; height:100%; position:absolute;"></div>
+<div class="loader loading"></div>
+<div id="box"></div>
 <script>
-	var container;
-	var camera, scene, renderer;
-	var uniforms, material, mesh;
-	var mouseX = 0, mouseY = 0,
-	lat = 0, lon = 0, phy = 0, theta = 0;
+	THREE.DefaultLoadingManager.onProgress = function ( item, loaded, total ) {
+	    if(loaded==total){
+	    	$('.loading').hide();
+	    }
+	};
+	// roate
+	THREE.PerspectiveCamera.prototype.setRotateX = function( deg ){
+        if ( typeof( deg ) == 'number' && parseInt( deg ) == deg ){
+            this.rotation.x = deg * ( Math.PI / 180 );
+        }
+    };
+    THREE.PerspectiveCamera.prototype.setRotateY = function( deg ){
+        if ( typeof( deg ) == 'number' && parseInt( deg ) == deg ){
+            this.rotation.y = deg * ( Math.PI / 180 );
+        }
+    };
+    THREE.PerspectiveCamera.prototype.setRotateZ = function( deg ){
+        if ( typeof( deg ) == 'number' && parseInt( deg ) == deg ){
+            this.rotation.z = deg * ( Math.PI / 180 );
+        }
+    };
+    THREE.PerspectiveCamera.prototype.getRotateX = function(){
+        return Math.round( this.rotation.x * ( 180 / Math.PI ) );
+    };
+    THREE.PerspectiveCamera.prototype.getRotateY = function(){
+        return Math.round( this.rotation.y * ( 180 / Math.PI ) );
+    };
+    THREE.PerspectiveCamera.prototype.getRotateZ = function(){
+        return Math.round( this.rotation.z * ( 180 / Math.PI ) );
+    };
+    function toBox( x, y, z )
+    {
+        document.getElementById('box').innerHTML = 'X: ' + x + '<br />Y: ' + y + '<br />Z: ' + z;
+    }
+
+
+	var container, stats;
+	var camera, scene, renderer, constrols;
+	var mouseX = 0, mouseY = 0;
 	var windowHalfX = window.innerWidth / 2;
 	var windowHalfY = window.innerHeight / 2;
+	var VIEW_INCREMENT = 0.1;
+	var clock = new THREE.Clock();
+	var player = { posX:-10, posY:100, posZ:0, speed:10, turnSpeed:Math.PI*0.005 };
+	var keyboard = {};
+
+	var book;
+
+	// model
+	var onProgress = function ( xhr ) {
+		if ( xhr.lengthComputable ) {
+			var percentComplete = xhr.loaded / xhr.total * 100;
+			console.log( Math.round(percentComplete, 2) + '% downloaded' );
+		}
+	};
+	var onError = function ( xhr ) { };
+	THREE.Loader.Handlers.add( /\.dds$/i, new THREE.DDSLoader() );
+	var mtlLoader = new THREE.MTLLoader();
+	var objects = [];
+
+
 	init();
-	var startTime = Date.now();
+	toBox( camera.position.x, camera.position.y, camera.position.z );
+
 	animate();
+	// render();
 	function init() {
-		container = document.getElementById( 'threejs_scene' );
-		camera = new THREE.Camera();
-		camera.position.z = 1;
+		container = document.createElement( 'div' );
+		document.body.appendChild( container );
+		camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 3000 );
+		camera.position.set(0, player.posY, 0);
+			camera.lookAt(new THREE.Vector3(0, player.posY, -1));
+
+		// scene
 		scene = new THREE.Scene();
-		uniforms = {
-			time: { type: "f", value: 1.0 },
-			resolution: { type: "v2", value: new THREE.Vector2() }
-		};
-		material = new THREE.ShaderMaterial( {
-			uniforms: uniforms,
-			vertexShader: document.getElementById( 'vertexShader' ).textContent,
-			fragmentShader: document.getElementById( 'fragmentShader' ).textContent
+
+		// light
+		var ambient = new THREE.AmbientLight( 0x444444 );
+		scene.add( ambient );
+		var directionalLight = new THREE.DirectionalLight( 0xffeedd );
+		directionalLight.position.set( 0, 0, 1 ).normalize();
+		scene.add( directionalLight );
+
+		// Section A
+		load_shelf(1800, 720, 2);
+		load_shelf(1950, 720, 2);
+		load_shelf(2100, 720, 2);
+		load_shelf(2250, 720, 2);
+		load_shelf(2400, 720, 2);
+		load_shelf(2550, 720, 2);
+		load_shelf(2700, 720, 2);
+		load_shelf(2850, 720, 2);
+		load_shelf(3000, 720, 2);
+		load_shelf(3150, 720, 1); // anomaly
+		load_shelf(3300, 720, 2);
+		load_shelf(3450, 720, 2);
+		load_shelf(3600, 720, 2);
+		load_shelf(3750, 720, 2);
+
+		// Section B
+		load_shelf(1000, -180, 3);
+		load_shelf(1150, -180, 3);
+		load_shelf(1300, -180, 3);
+		load_shelf(1450, -180, 3);
+		load_shelf(1600, -180, 3);
+		load_shelf(1750, -180, 3);
+		load_shelf(1900, -180, 3);
+		load_shelf(2050, -180, 3);
+		load_shelf(2200, -180, 3);
+		load_shelf(2350, -720, 1); // anomaly
+		load_shelf(2500, -180, 3);
+		load_shelf(2650, -180, 3);
+		load_shelf(2800, -180, 3);
+		load_shelf(2950, -180, 3);
+		load_shelf(3100, -180, 2); // anomaly
+		load_shelf(3250, -180, 2); // anomaly
+		load_shelf(3400, -180, 1); // anomaly
+		load_shelf2(3400, -180, 1); // anomaly+
+		load_shelf(3550, -180, 1); // anomaly
+		load_shelf3(3550, -180, 1); // anomaly+
+		load_shelf(3700, -180, 1); // anomaly
+
+		// Section C
+		load_shelf(1000, -1190, 3);
+		load_shelf(1150, -1190, 3);
+		load_shelf(1300, -1190, 3);
+		load_shelf(1450, -1190, 3);
+		load_shelf(1600, -1460, 2); // anomaly
+		load_shelf(1750, -1190, 3);
+		load_shelf(1900, -1190, 3);
+		load_shelf(2050, -1190, 3);
+		load_shelf(2200, -1190, 2); // anomaly
+		load_shelf(2350, -1190, 2); // anomaly
+		load_shelf(2500, -1190, 1); // anomaly
+		load_shelf(2650, -1190, 1); // anomaly
+
+		// section D
+		mtlLoader.load( 'book2.mtl', function( materials ) {
+			materials.preload();
+			var objLoader = new THREE.OBJLoader();
+			objLoader.setMaterials( materials );
+			objLoader.setPath( '/' );
+			objLoader.load( 'book2.obj', function ( object ) {
+				for (var i = 0; i<3; i++){
+					newCell = object.clone();
+					// object.position.z -= 500;
+					// object.position.x += 250*i;
+					// scene.add( object );
+					// newCell.scale.set(13, 13, 13); // normalize to roughly 1x1 packing
+					// newCell.rotation.y +=10;
+		            // newCell.position.set(newCell.position.x + 150*i, newCell.position.y, newCell.position.z -200);
+		            newCell.position.set(newCell.position.x, newCell.position.y, newCell.position.z -200 - 180*i);
+		            scene.add(newCell);
+		            objects.push(newCell);
+				}
+			}, onProgress, onError );
 		});
-		mesh = new THREE.Mesh( new THREE.PlaneGeometry( 2, 2 ), material );
-		scene.add( mesh );
+		load_shelf(-1200,-360,3);
+		load_shelf(-1350,-360,3);
+		load_shelf(-1500,-360,3);
+		load_shelf(-1650,-360,3);
+		load_shelf(-1800,-360,2);
+		load_shelf(-1950,-360,3);
+		load_shelf(-2100,-360,3);
+		load_shelf(-2250,-360,3);
+		load_shelf(-2400,-360,3);
+		// load_shelf(-2350,-360,3);
+
+		// section E
+
+		load_shelf(-1200,-1370,3);
+		load_shelf(-1350,-1370,3);
+		load_shelf(-1500,-1370,3);
+		load_shelf(-1650,-1370,3);
+		load_shelf(-1800,-1370,3);
+		load_shelf(-1950,-1370,2);
+		load_shelf2(-1950,-1370,2);
+		load_shelf(-2100,-1370,2);
+		// load_shelf2(-2100,-1370,2);
+		// load_shelf(-2050,-1370,2);
+		// load_shelf(-2200,-1370,1);
+		// load_shelf2(-2200,-1370,1);
+		// load_shelf(-2350,-1370,1);
+		// load_shelf2(-2350,-1370,1);
+
+		// mtlLoader.load( 'book3.mtl', function( materials ) {
+		// 	materials.preload();
+		// 	var objLoader = new THREE.OBJLoader();
+		// 	objLoader.setMaterials( materials );
+		// 	objLoader.setPath( '/' );
+		// 	objLoader.load( 'book3.obj', function ( object ) {
+		// 		for (var i = 1; i<4; i++){
+		// 			newCell = object.clone();
+		// 			// object.position.z -= 500;
+		// 			// object.position.x += 250*i;
+		// 			// scene.add( object );
+		// 			// newCell.scale.set(13, 13, 13); // normalize to roughly 1x1 packing
+		//             // newCell.position.set(newCell.position.x + 150*i, newCell.position.y, newCell.position.z +200);
+		//             // newCell.position.set(newCell.position.x, newCell.position.y, newCell.position.z +200 + 270*i);
+		//             newCell.position.set(200, newCell.position.y, 270*i);
+		//             scene.add(newCell);
+		//             objects.push(newCell);
+		// 		}
+		// 	}, onProgress, onError );
+		// });
+
+		/*
+		mtlLoader.load( 'book2.mtl', function( materials ) {
+			materials.preload();
+			var objLoader = new THREE.OBJLoader();
+			objLoader.setMaterials( materials );
+			objLoader.setPath( '/' );
+			objLoader.load( 'book2.obj', function ( object ) {
+				for (var i = 0; i<3; i++){
+					newCell = object.clone();
+					// object.position.z -= 500;
+					// object.position.x += 250*i;
+					// scene.add( object );
+					// newCell.scale.set(13, 13, 13); // normalize to roughly 1x1 packing
+					// newCell.rotation.y +=10;
+		            // newCell.position.set(newCell.position.x + 150*i, newCell.position.y, newCell.position.z -200);
+		            newCell.position.set(newCell.position.x, newCell.position.y, newCell.position.z -200 - 180*i);
+		            scene.add(newCell);
+		            objects.push(newCell);
+				}
+			}, onProgress, onError );
+		});
+		*/
+
+		// hyungjun
+	// 	mtlLoader.load( '/book3.mtl', function( materials ) {
+	// 	materials.preload();
+	// 	var objLoader = new THREE.OBJLoader();
+	// 	objLoader.setMaterials( materials );
+	// 	objLoader.load( '/book3.obj', function ( object ) {
+	// 	  for(var i = 0; i<14; i++){ // A sector
+	//       newCell0 = object.clone();
+	//       newCell0.position.x += 1800 + (i*150);
+	//       newCell0.position.z += 720;
+	//       scene.add(newCell0);
+	//       if (i==9) continue;
+	//       newCell1 = newCell0.clone();
+	//       newCell1.position.z -= 270;
+	//       scene.add(newCell1);
+	//     }
+	//     for(var i = 0; i<19; i++){ // B sector (1)
+	//       if(i!=9){
+	//         newCell0 = object.clone();
+	//         newCell0.position.x += 1000 + (i*150);
+	//         newCell0.position.z -= 180;
+	//         scene.add(newCell0);
+	//         if(i == 16 || i == 17 || i == 18) continue;
+	//         newCell1 = object.clone();
+	//         newCell1.position.x += 1000 + (i*150);
+	//         newCell1.position.z -= 450;
+	//         scene.add(newCell1);
+	//       }
+	//       if(i!=14 && i!=15){
+	//         newCell2 = object.clone();
+	//         newCell2.position.x += 1000 + (i*150);
+	//         newCell2.position.z -= 720;
+	//         scene.add(newCell2);
+	//       }
+	//     }
+	//     for(var i = 0; i<12; i++){ // C sector
+	//       if(i!=4){
+	//         newCell0 = object.clone();
+	//         newCell0.position.x += 1000 + (i*150);
+	//         newCell0.position.z -= 1190;
+	//         scene.add(newCell0);
+	//       }
+	//       if(i<10){
+	//         newCell1 = object.clone();
+	//         newCell1.position.x += 1000 + (i*150);
+	//         newCell1.position.z -= 1460;
+	//         scene.add(newCell1);
+	//       }
+	//       if(i<8){
+	//         newCell2 = object.clone();
+	//         newCell2.position.x += 1000 + (i*150);
+	//         newCell2.position.z -= 1730;
+	//         scene.add(newCell2);
+	//       }
+	//     }
+	// 	}, onProgress, onError );
+	// });
+
+	// mtlLoader.load( '/book2.mtl', function( materials ) { // B sector (2)
+	// 	materials.preload();
+	// 	var objLoader = new THREE.OBJLoader();
+	// 	objLoader.setMaterials( materials );
+	//   objLoader.load( '/book2.obj', function ( object ) {
+	//     newCell = object.clone();
+	//     newCell.position.x += 150;
+	//     newCell.position.x += 1000 + (16*150);
+	//     newCell.position.z -= 450;
+	//     scene.add(newCell);
+	//   }, onProgress, onError );
+	// });
+
+	// mtlLoader.load( '/book1.mtl', function( materials ) { // B sector (3)
+	// 	materials.preload();
+	// 	var objLoader = new THREE.OBJLoader();
+	// 	objLoader.setMaterials( materials );
+	//   objLoader.load( '/book1.obj', function ( object ) {
+	//     newCell = object.clone();
+	//     newCell.position.x += 300;
+	//     newCell.position.x += 1000 + (17*150);
+	//     newCell.position.z -= 450;
+	//     scene.add(newCell);
+	//   }, onProgress, onError );
+	// });
+		// hyungjun end
+
+		// new book;
+
+		// renderer
 		renderer = new THREE.WebGLRenderer();
+		renderer.setPixelRatio( window.devicePixelRatio );
+		renderer.setSize( window.innerWidth, window.innerHeight );
+		renderer.setClearColor('white');
 		container.appendChild( renderer.domElement );
-		uniforms.resolution.value.x = window.innerWidth;
-		uniforms.resolution.value.y = window.innerHeight;
+		// document.addEventListener( 'mousemove', onDocumentMouseMove, false );
+		//
+		window.addEventListener( 'resize', onWindowResize, false );
+		// renderer.render( scene, camera );
+	}
+
+	function load_shelf(x, z, status){
+		mtlLoader.load( '/book3.mtl', function( materials ) {
+			materials.preload();
+			var objLoader = new THREE.OBJLoader();
+			objLoader.setMaterials( materials );
+			// 만약 넘어온 데이터의 x,z값이 같다면, 투명하지 않게 하기
+			objLoader.setPath( '/' );
+			objLoader.load( 'book3.obj', function ( object ) {
+				for (var i = 0; i<3; i++){
+					if(status<=i){
+						continue;
+					}
+					newCell = object.clone();
+					if(status==1){
+						newCell.position.set(x, newCell.position.y, z);	
+					}
+					else{
+						newCell.position.set(x, newCell.position.y, z-270*i);	
+					}
+		            scene.add(newCell);
+		            objects.push(newCell);
+				}
+			}, onProgress, onError );
+		});
+	}
+
+	function load_shelf2(x, z, status){
+		mtlLoader.load( '/book2.mtl', function( materials ) {
+			materials.preload();
+			var objLoader = new THREE.OBJLoader();
+			objLoader.setMaterials( materials );
+			objLoader.setPath( '/' );
+			objLoader.load( 'book2.obj', function ( object ) {
+				newCell = object.clone();
+				if (status==2){
+					newCell.position.set(x, newCell.position.y, z-540);
+				}
+				else{
+					newCell.position.set(x, newCell.position.y, z-270);
+				}
+
+
+	            scene.add(newCell);
+	            objects.push(newCell);
+			}, onProgress, onError );
+		});
+	}
+
+	function load_shelf3(x, z, status){
+		mtlLoader.load( '/book1.mtl', function( materials ) {
+			materials.preload();
+			var objLoader = new THREE.OBJLoader();
+			objLoader.setMaterials( materials );
+			objLoader.setPath( '/' );
+			objLoader.load( 'book1.obj', function ( object ) {
+				newCell = object.clone();
+				if (status==2){
+					newCell.position.set(x, newCell.position.y, z-540);
+				}else{
+					newCell.position.set(x, newCell.position.y, z-270);
+				}
+
+
+	            scene.add(newCell);
+	            objects.push(newCell);
+			}, onProgress, onError );
+		});
+	}
+
+
+	function check(e) {
+		var delta = 10;
+		event = event || window.event;
+	    var code = e.keyCode;
+	    switch (code) {
+	        case 37:
+	        	camera.rotation.y += player.turnSpeed;
+	        	break; //Left key
+	        case 38:
+				camera.position.x -= Math.sin(camera.rotation.y) * player.speed;
+			    camera.position.z -= Math.cos(camera.rotation.y) * player.speed;
+	        	break; //Up key
+	        case 39:
+	        	camera.rotation.y -= player.turnSpeed;
+	        	break; //Right key
+	        case 40:
+	       		camera.position.x += Math.sin(camera.rotation.y) * player.speed;
+			    camera.position.z += Math.cos(camera.rotation.y) * player.speed;
+	        	break; //Down key
+	        default: console.log(code); //Everything else
+	    }
+   		toBox( camera.position.x, camera.position.y, camera.position.z );
+	}
+
+	window.addEventListener('keydown',this.check,false);
+
+
+	function onWindowResize() {
+		windowHalfX = window.innerWidth / 2;
+		windowHalfY = window.innerHeight / 2;
+		camera.aspect = window.innerWidth / window.innerHeight;
+		camera.updateProjectionMatrix();
 		renderer.setSize( window.innerWidth, window.innerHeight );
 	}
+	function onDocumentMouseMove( event ) {
+		mouseX = ( event.clientX - windowHalfX ) / 2;
+		mouseY = ( event.clientY - windowHalfY ) / 2;
+	}
+	//
 	function animate() {
 		requestAnimationFrame( animate );
+
+
 		render();
+		// controls.update();
 	}
+
 	function render() {
-		var elapsedMilliseconds = Date.now() - startTime;
-		var elapsedSeconds = elapsedMilliseconds / 1000.;
-		uniforms.time.value = 60. * elapsedSeconds;
+
+		// camera.lookAt( scene.position );
+		// camControls.update( clock.getDelta() );
 		renderer.render( scene, camera );
 	}
-	
 </script>

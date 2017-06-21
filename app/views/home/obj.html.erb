@@ -74,10 +74,26 @@
 	var windowHalfY = window.innerHeight / 2;
 	var VIEW_INCREMENT = 0.1;
 	var clock = new THREE.Clock();
-	var player = { posX:-10, posY:100, posZ:0, speed:10, turnSpeed:Math.PI*0.005 };
+	var player = {
+	  position : new THREE.Vector3(0.0, 160.0, 1.0),
+	  speed : 10, turnSpeed : Math.PI * 0.005
+	};
 	var keyboard = {};
 
+	var destination = {
+	  position : new THREE.Vector3(<%=@shelf_x%>, player.position.y, <%=@shelf_z%>), // example! we should take this position from server
+	}
+	var floorTex;
+	ARROW_ALTITUDE = 142;
+	ARROW_DISTANCE = 70;
+	var arrowDir = new THREE.Vector2(destination.position.x, destination.position.z);
+	ROUTE_WIDTH = 30;
+	ROUTE_FLOAT = 50;
+	var isAutonavi_ing = false;
+
 	var book;
+
+
 
 	// model
 	var onProgress = function ( xhr ) {
@@ -101,63 +117,183 @@
 		container = document.createElement( 'div' );
 		document.body.appendChild( container );
 		camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 3000 );
-		camera.position.set(0, player.posY, 0);
-			camera.lookAt(new THREE.Vector3(0, player.posY, -1));
+		camera.position.set(player.position.x, player.position.y, player.position.z);
+		camera.lookAt(new THREE.Vector3(0, player.position.y, 0));
 
 		// scene
 		scene = new THREE.Scene();
 
 		// light
-		var ambient = new THREE.AmbientLight( 0x444444 );
-		scene.add( ambient );
-		var directionalLight = new THREE.DirectionalLight( 0xffeedd );
-		directionalLight.position.set( 0, 0, 1 ).normalize();
-		scene.add( directionalLight );
+
+		// lights
+		var ambientLight0 = new THREE.AmbientLight(0xffffff, 1);
+		var pointLight0 = new THREE.PointLight(0xeeffee, 0.7, 10);
+		scene.add(ambientLight0);
+
+		mtlLoader.setPath( '/' );
+		mtlLoader.load('wall.mtl', function( materials ) { // B sector (3)
+			materials.preload();
+			var objLoader = new THREE.OBJLoader();
+			objLoader.setMaterials( materials );
+			objLoader.setPath( '/' );
+		  objLoader.load( 'wall.obj', function ( object ) {
+		    newCell = object.clone();
+		    // newCell.position.x += 300;
+		    // newCell.position.x += 1000 + (17*150);
+		    newCell.position.z -= 670;
+		    scene.add(newCell);
+		  }, onProgress, onError );
+		});
 
 
-		// // model
-		// var onProgress = function ( xhr ) {
-		// 	if ( xhr.lengthComputable ) {
-		// 		var percentComplete = xhr.loaded / xhr.total * 100;
-		// 		console.log( Math.round(percentComplete, 2) + '% downloaded' );
-		// 	}
-		// };
-		// var onError = function ( xhr ) { };
-		// THREE.Loader.Handlers.add( /\.dds$/i, new THREE.DDSLoader() );
-		// var mtlLoader = new THREE.MTLLoader();
-		// var objects = [];
+		mtlLoader.load('mirror.mtl', function( materials ) { // B sector (3)
+			materials.preload();
+			var objLoader = new THREE.OBJLoader();
+			objLoader.setMaterials( materials );
+			objLoader.setPath( '/' );
+		  objLoader.load( 'mirror.obj', function ( object ) {
+		    newCell = object.clone();
+		    // newCell.position.x += 300;
+		    // newCell.position.x += 1000 + (17*150);
+		    newCell.traverse( function ( child ) {
+		      if ( child instanceof THREE.Mesh ) {
+		        child.material.transparent = true;
+		        child.material.depthwrite = false;
+		        child.material.opacity = 0.5;
+		        child.material.isPhongMaterial = false;
+		        // child.material.visible = false;
+		      }
+		    } );
+		    newCell.position.y += 1;
+		    newCell.position.z += 150;
+		    scene.add(newCell);
+		  }, onProgress, onError );
+		});
 
-		// mtlLoader.setPath( '/' );
-		// mtlLoader.load( 'library.mtl', function( materials ) {
-		// 	materials.preload();
-		// 	var objLoader = new THREE.OBJLoader();
-		// 	objLoader.setMaterials( materials );
-		// 	objLoader.setPath( '/' );
-		// 	objLoader.load( 'library.obj', function ( object ) {
-		// 		newCell = object.clone();
-		// 		scene.add(newCell);
-		// 	}, onProgress, onError );
-		// });
+		mtlLoader.load('basicbook.mtl', function( materials ) { // B sector (3)
+			materials.preload();
+			var objLoader = new THREE.OBJLoader();
+			objLoader.setMaterials( materials );
+			objLoader.setPath( '/' );
+		  objLoader.load( 'basicbook.obj', function ( object ) {
+		    newCell = object.clone();
+		    newCell.position.x -= 1050;
+		    newCell.position.z -= 540;
+		    newCell.traverse( function ( child ) {
+		        if ( child instanceof THREE.Mesh ) {
+		          child.material.transparent = true;
+		          child.material.depthwrite = false;
+		          child.material.opacity = 0.5;
+		          child.material.ambient = 0.1;
+		          // child.material.isPhongMaterial = false;
+		          // child.material.visible = false;
+		        }
+		      } );
+		    scene.add(newCell);
+		  }, onProgress, onError );
+		});
 
-		// section A
-		// load_shelf(1000,720,2);
-		// load_shelf(1150,720,2);
-		// load_shelf(1300,720,2);
 
-		// load_shelf(1450,720,2);
-		// load_shelf(1600,720,2);
-		// load_shelf(1750,720,2);
 
-		// load_shelf(1900,720,2);
-		// load_shelf(2050,720,2);
-		// load_shelf(2200,720,2);
+		// direction guide
+		var directionGuideGeom = new THREE.ConeBufferGeometry(2, 20, 10, 1, true);
+		var directionGuideMtl = new THREE.MeshBasicMaterial({
+		  color: 0xff99ff,
+		  wireframe: false,
+		  transparent: true,
+		  opacity: 0.3
+		});
+		var directionGuide = new THREE.Mesh(directionGuideGeom, directionGuideMtl);
+		directionGuide.rotation.x -= Math.PI /2;
+		directionGuide.position.y = ARROW_ALTITUDE;
+		directionGuide.position.z = camera.position.z - ARROW_DISTANCE;
+		scene.add(directionGuide);
 
-		// load_shelf(2350,720,1);
-		// load_shelf(2500,720,2);
-		// load_shelf(2650,720,2);
+		// route guide
+		drawRouteGuide();
+		function drawRouteGuide(){
+		  var routeGuideGeom_x = new THREE.PlaneBufferGeometry(Math.abs(destination.position.x)-ROUTE_WIDTH, ROUTE_WIDTH); // along x axis
+		  var routeGuideGeom_z = new THREE.PlaneBufferGeometry(ROUTE_WIDTH, Math.abs(destination.position.z)-ROUTE_WIDTH); // along z axis
 
-		// load_shelf(2800,720,2);
-		// load_shelf(2950,720,2);
+		  // var routeGuideGeom_corner = new THREE.CircleBufferGeometry(ROUTE_WIDTH, 30, Math.PI*1.5, Math.PI/2); // fill the corner
+		  var routeGuideGeom_corner = new THREE.PlaneBufferGeometry(ROUTE_WIDTH, ROUTE_WIDTH); // fill the corner
+		  var routeGuideMtl = new THREE.MeshBasicMaterial({
+		    color: 0xff99ff,
+		    wireframe: false,
+		    transparent: true,
+		    opacity: 0.6
+		  });
+		  var routeGuide_x = new THREE.Mesh(routeGuideGeom_x, routeGuideMtl);
+		  routeGuide_x.rotation.x -= Math.PI/2;
+		  routeGuide_x.position.x += destination.position.x/2;
+		  routeGuide_x.position.y += ROUTE_FLOAT;
+		  scene.add(routeGuide_x);
+		  var routeGuide_corner = new THREE.Mesh(routeGuideGeom_corner, routeGuideMtl);
+		  routeGuide_corner.rotation.x -= Math.PI/2;
+		  routeGuide_corner.position.x += destination.position.x;
+		  routeGuide_corner.position.y += ROUTE_FLOAT;
+		  scene.add(routeGuide_corner);
+		  var routeGuide_z = new THREE.Mesh(routeGuideGeom_z, routeGuideMtl);
+		  routeGuide_z.rotation.x -= Math.PI/2;
+		  routeGuide_z.position.x += destination.position.x;
+		  routeGuide_z.position.z += destination.position.z/2; // +- signs would be applied implicitly
+		  routeGuide_z.position.y += ROUTE_FLOAT;
+		  scene.add(routeGuide_z);
+		};
+
+
+		// Section A
+		load_shelf(1800, 720, 2);
+		load_shelf(1950, 720, 2);
+		load_shelf(2100, 720, 2);
+		load_shelf(2250, 720, 2);
+		load_shelf(2400, 720, 2);
+		load_shelf(2550, 720, 2);
+		load_shelf(2700, 720, 2);
+		load_shelf(2850, 720, 2);
+		load_shelf(3000, 720, 2);
+		load_shelf(3150, 720, 1); // anomaly
+		load_shelf(3300, 720, 2);
+		load_shelf(3450, 720, 2);
+		load_shelf(3600, 720, 2);
+		load_shelf(3750, 720, 2);
+
+		// Section B
+		load_shelf(1000, -180, 3);
+		load_shelf(1150, -180, 3);
+		load_shelf(1300, -180, 3);
+		load_shelf(1450, -180, 3);
+		load_shelf(1600, -180, 3);
+		load_shelf(1750, -180, 3);
+		load_shelf(1900, -180, 3);
+		load_shelf(2050, -180, 3);
+		load_shelf(2200, -180, 3);
+		load_shelf(2350, -720, 1); // anomaly
+		load_shelf(2500, -180, 3);
+		load_shelf(2650, -180, 3);
+		load_shelf(2800, -180, 3);
+		load_shelf(2950, -180, 3);
+		load_shelf(3100, -180, 2); // anomaly
+		load_shelf(3250, -180, 2); // anomaly
+		load_shelf(3400, -180, 1); // anomaly
+		load_shelf2(3400, -180, 1); // anomaly+
+		load_shelf(3550, -180, 1); // anomaly
+		load_shelf3(3550, -180, 1); // anomaly+
+		load_shelf(3700, -180, 1); // anomaly
+
+		// Section C
+		load_shelf(1000, -1190, 3);
+		load_shelf(1150, -1190, 3);
+		load_shelf(1300, -1190, 3);
+		load_shelf(1450, -1190, 3);
+		load_shelf(1600, -1460, 2); // anomaly
+		load_shelf(1750, -1190, 3);
+		load_shelf(1900, -1190, 3);
+		load_shelf(2050, -1190, 3);
+		load_shelf(2200, -1190, 2); // anomaly
+		load_shelf(2350, -1190, 2); // anomaly
+		load_shelf(2500, -1190, 1); // anomaly
+		load_shelf(2650, -1190, 1); // anomaly
 
 		// section D
 		load_shelf(-1200,-360,3);
@@ -180,146 +316,32 @@
 		load_shelf(-1950,-1370,2);
 		load_shelf2(-1950,-1370,2);
 		load_shelf(-2100,-1370,2);
-		// load_shelf2(-2100,-1370,2);
-		// load_shelf(-2050,-1370,2);
-		// load_shelf(-2200,-1370,1);
-		// load_shelf2(-2200,-1370,1);
-		// load_shelf(-2350,-1370,1);
-		// load_shelf2(-2350,-1370,1);
 
-		// mtlLoader.load( 'book3.mtl', function( materials ) {
-		// 	materials.preload();
-		// 	var objLoader = new THREE.OBJLoader();
-		// 	objLoader.setMaterials( materials );
-		// 	objLoader.setPath( '/' );
-		// 	objLoader.load( 'book3.obj', function ( object ) {
-		// 		for (var i = 1; i<4; i++){
-		// 			newCell = object.clone();
-		// 			// object.position.z -= 500;
-		// 			// object.position.x += 250*i;
-		// 			// scene.add( object );
-		// 			// newCell.scale.set(13, 13, 13); // normalize to roughly 1x1 packing
-		//             // newCell.position.set(newCell.position.x + 150*i, newCell.position.y, newCell.position.z +200);
-		//             // newCell.position.set(newCell.position.x, newCell.position.y, newCell.position.z +200 + 270*i);
-		//             newCell.position.set(200, newCell.position.y, 270*i);
-		//             scene.add(newCell);
-		//             objects.push(newCell);
-		// 		}
-		// 	}, onProgress, onError );
-		// });
-
-		/*
-		mtlLoader.load( 'book2.mtl', function( materials ) {
-			materials.preload();
-			var objLoader = new THREE.OBJLoader();
-			objLoader.setMaterials( materials );
-			objLoader.setPath( '/' );
-			objLoader.load( 'book2.obj', function ( object ) {
-				for (var i = 0; i<3; i++){
-					newCell = object.clone();
-					// object.position.z -= 500;
-					// object.position.x += 250*i;
-					// scene.add( object );
-					// newCell.scale.set(13, 13, 13); // normalize to roughly 1x1 packing
-					// newCell.rotation.y +=10;
-		            // newCell.position.set(newCell.position.x + 150*i, newCell.position.y, newCell.position.z -200);
-		            newCell.position.set(newCell.position.x, newCell.position.y, newCell.position.z -200 - 180*i);
-		            scene.add(newCell);
-		            objects.push(newCell);
-				}
-			}, onProgress, onError );
+		// flooring
+		var textureLoader = new THREE.TextureLoader();
+		textureLoader.crossOrigin = '';
+		floorTex = textureLoader.load("/floor_min.jpg");
+		floorTex.wrapS = THREE.RepeatWrapping;
+		floorTex.wrapT = THREE.RepeatWrapping;
+		floorTex.repeat.set( 30, 20 );
+		floorTex.generateMipmaps = true;
+		floorTex.minFilter = THREE.LinearFilter;
+		floorTex.magFilter = THREE.LinearFilter;
+		var floorGeom = new THREE.PlaneGeometry(9000, 6000);
+		var floorMtl = new THREE.MeshPhongMaterial({
+		  color: 0xffffff,
+		  wireframe: false,
+		  map: floorTex
 		});
-		*/
-
-		// hyungjun
-		mtlLoader.load( '/book3.mtl', function( materials ) {
-		materials.preload();
-		var objLoader = new THREE.OBJLoader();
-		objLoader.setMaterials( materials );
-		objLoader.load( '/book3.obj', function ( object ) {
-		  for(var i = 0; i<14; i++){ // A sector
-	      newCell0 = object.clone();
-	      newCell0.position.x += 1800 + (i*150);
-	      newCell0.position.z += 720;
-	      scene.add(newCell0);
-	      if (i==9) continue;
-	      newCell1 = newCell0.clone();
-	      newCell1.position.z -= 270;
-	      scene.add(newCell1);
-	    }
-	    for(var i = 0; i<19; i++){ // B sector (1)
-	      if(i!=9){
-	        newCell0 = object.clone();
-	        newCell0.position.x += 1000 + (i*150);
-	        newCell0.position.z -= 180;
-	        scene.add(newCell0);
-	        if(i == 16 || i == 17 || i == 18) continue;
-	        newCell1 = object.clone();
-	        newCell1.position.x += 1000 + (i*150);
-	        newCell1.position.z -= 450;
-	        scene.add(newCell1);
-	      }
-	      if(i!=14 && i!=15){
-	        newCell2 = object.clone();
-	        newCell2.position.x += 1000 + (i*150);
-	        newCell2.position.z -= 720;
-	        scene.add(newCell2);
-	      }
-	    }
-	    for(var i = 0; i<12; i++){ // C sector
-	      if(i!=4){
-	        newCell0 = object.clone();
-	        newCell0.position.x += 1000 + (i*150);
-	        newCell0.position.z -= 1190;
-	        scene.add(newCell0);
-	      }
-	      if(i<10){
-	        newCell1 = object.clone();
-	        newCell1.position.x += 1000 + (i*150);
-	        newCell1.position.z -= 1460;
-	        scene.add(newCell1);
-	      }
-	      if(i<8){
-	        newCell2 = object.clone();
-	        newCell2.position.x += 1000 + (i*150);
-	        newCell2.position.z -= 1730;
-	        scene.add(newCell2);
-	      }
-	    }
-		}, onProgress, onError );
-	});
-
-	mtlLoader.load( '/book2.mtl', function( materials ) { // B sector (2)
-		materials.preload();
-		var objLoader = new THREE.OBJLoader();
-		objLoader.setMaterials( materials );
-	  objLoader.load( '/book2.obj', function ( object ) {
-	    newCell = object.clone();
-	    newCell.position.x += 150;
-	    newCell.position.x += 1000 + (16*150);
-	    newCell.position.z -= 450;
-	    scene.add(newCell);
-	  }, onProgress, onError );
-	});
-
-	mtlLoader.load( '/book1.mtl', function( materials ) { // B sector (3)
-		materials.preload();
-		var objLoader = new THREE.OBJLoader();
-		objLoader.setMaterials( materials );
-	  objLoader.load( '/book1.obj', function ( object ) {
-	    newCell = object.clone();
-	    newCell.position.x += 300;
-	    newCell.position.x += 1000 + (17*150);
-	    newCell.position.z -= 450;
-	    scene.add(newCell);
-	  }, onProgress, onError );
-	});
-		// hyungjun end
+		var floor = new THREE.Mesh(floorGeom, floorMtl);
+		floor.rotation.x = -Math.PI/2;
+		floor.position.z -= 1000;
+		scene.add(floor);
 
 		// new book;
 
 		// renderer
-		renderer = new THREE.WebGLRenderer();
+		renderer = new THREE.WebGLRenderer({antialias:true});
 		renderer.setPixelRatio( window.devicePixelRatio );
 		renderer.setSize( window.innerWidth, window.innerHeight );
 		renderer.setClearColor('white');
@@ -331,7 +353,7 @@
 	}
 
 	function load_shelf(x, z, status){
-		mtlLoader.load( '/book3.mtl', function( materials ) {
+		mtlLoader.load( 'book3.mtl', function( materials ) {
 			materials.preload();
 			var objLoader = new THREE.OBJLoader();
 			objLoader.setMaterials( materials );
@@ -343,7 +365,25 @@
 						continue;
 					}
 					newCell = object.clone();
-					newCell.position.set(x, newCell.position.y, z-270*i);
+					if(status==1){
+						newCell.position.set(x, newCell.position.y, z);	
+					}
+					else{
+						newCell.position.set(x, newCell.position.y, z-270*i);	
+					}
+					if(x!=<%=@shelf.x%> || z!=<%=@shelf.z%>){
+					newCell.traverse( function ( child ) {
+				        if ( child instanceof THREE.Mesh ) {
+				          child.material.transparent = true;
+				          child.material.depthwrite = false;
+				          child.material.opacity = 0.5;
+				          child.material.ambient = 0.1;
+				          // child.material.isPhongMaterial = false;
+				          // child.material.visible = false;
+				        }
+				      } );
+					}
+
 		            scene.add(newCell);
 		            objects.push(newCell);
 				}
@@ -352,7 +392,7 @@
 	}
 
 	function load_shelf2(x, z, status){
-		mtlLoader.load( '/book2.mtl', function( materials ) {
+		mtlLoader.load( 'book2.mtl', function( materials ) {
 			materials.preload();
 			var objLoader = new THREE.OBJLoader();
 			objLoader.setMaterials( materials );
@@ -360,11 +400,57 @@
 			objLoader.load( 'book2.obj', function ( object ) {
 				newCell = object.clone();
 				if (status==2){
-					newCell.position.set(x+150, newCell.position.y, z-540);
-				}else{
-					newCell.position.set(x+150, newCell.position.y, z-270);
+					newCell.position.set(x, newCell.position.y, z-540);
+				}
+				else{
+					newCell.position.set(x, newCell.position.y, z-270);
+				}
+				if(x!=<%=@shelf.x%> || z!=<%=@shelf.z%>){
+					newCell.traverse( function ( child ) {
+				        if ( child instanceof THREE.Mesh ) {
+				          child.material.transparent = true;
+				          child.material.depthwrite = false;
+				          child.material.opacity = 0.5;
+				          child.material.ambient = 0.1;
+				          // child.material.isPhongMaterial = false;
+				          // child.material.visible = false;
+				        }
+				      } );
 				}
 
+
+	            scene.add(newCell);
+	            objects.push(newCell);
+			}, onProgress, onError );
+		});
+	}
+
+	function load_shelf3(x, z, status){
+		mtlLoader.load( 'book1.mtl', function( materials ) {
+			materials.preload();
+			var objLoader = new THREE.OBJLoader();
+			objLoader.setMaterials( materials );
+			objLoader.setPath( '/' );
+			objLoader.load( 'book1.obj', function ( object ) {
+				newCell = object.clone();
+				if (status==2){
+					newCell.position.set(x, newCell.position.y, z-540);
+				}else{
+					newCell.position.set(x, newCell.position.y, z-270);
+				}
+
+				if(x!=<%=@shelf.x%> || z!=<%=@shelf.z%>){
+				newCell.traverse( function ( child ) {
+			        if ( child instanceof THREE.Mesh ) {
+			          child.material.transparent = true;
+			          child.material.depthwrite = false;
+			          child.material.opacity = 0.5;
+			          child.material.ambient = 0.1;
+			          // child.material.isPhongMaterial = false;
+			          // child.material.visible = false;
+			        }
+			      } );
+				}
 
 	            scene.add(newCell);
 	            objects.push(newCell);

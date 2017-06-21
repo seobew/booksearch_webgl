@@ -18,7 +18,6 @@ class HomeController < ApplicationController
 
   def obj
     @shelf_id = params[:shelf_id]
-    puts @shelf_id
     @shelf = Shelf.find(@shelf_id)
     @shelf_x = @shelf.x-50
     if @shelf.z<0 
